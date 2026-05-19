@@ -1,0 +1,66 @@
+# 盘前作战地图 · GitHub Action 工作流
+# 每天 UTC 00:30 (= 北京时间 08:30)，赶在A股开盘前
+
+name: 盘前作战地图
+
+on:
+  schedule:
+    - cron: "30 0 * * 1-5"   # 工作日 08:30 CST
+  workflow_dispatch:
+
+env:
+  DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  DEEPSEEK_MODEL: deepseek-chat
+  MAIL_SMTP_SERVER: smtp.qq.com
+  MAIL_SMTP_PORT: 465
+  MAIL_USER: ${{ secrets.MAIL_USER }}
+  MAIL_PASS: ${{ secrets.MAIL_PASS }}
+  MAIL_TO_PRIMARY: ${{ secrets.MAIL_TO_PRIMARY }}
+  MAIL_TO_SECONDARY: ${{ secrets.MAIL_TO_SECONDARY }}
+  OUTPUT_DIR: output
+
+jobs:
+  generate-brief:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: 📥 检出
+        uses: actions/checkout@v4
+
+      - name: 🐍 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 📊 生成早报
+        id: brief
+        run: python main.py
+
+      - name: 📤 上传 Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: output/
+
+  deploy:
+    needs: generate-brief
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 🚀 部署
+        id: deployment
+        uses: actions/deploy-pages@v4
