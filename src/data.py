@@ -285,6 +285,69 @@ def fetch_unlock_data() -> list[dict]:
 
 
 # ══════════════════════════════════════════
+# 资金流入排行 + 缩量下跌高换手
+# ══════════════════════════════════════════
+
+def fetch_moneyflow_top(n: int = 15) -> list[dict]:
+    """获取个股资金净流入排行"""
+    items = []
+    try:
+        import akshare as ak
+        df = ak.stock_moneyflow_individual_em()
+        if df is not None and not df.empty and "net_amount" in df.columns:
+            df = df.sort_values("net_amount", ascending=False).head(n)
+            for _, row in df.iterrows():
+                items.append({
+                    "name": row.get("name", ""),
+                    "code": row.get("code", ""),
+                    "net_inflow": row.get("net_amount", 0),
+                    "change_pct": row.get("change_pct", 0),
+                })
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"  ⚠️ 资金流入排行失败: {e}")
+    return items
+
+
+def fetch_volume_alert(top_n: int = 10) -> list[dict]:
+    """筛选缩量下跌+高换手率个股"""
+    items = []
+    try:
+        import akshare as ak
+        df = ak.stock_zh_a_spot_em()
+        if df is None or df.empty:
+            return items
+        
+        # 筛选条件
+        needed_cols = {"代码", "名称", "最新价", "涨跌幅", "换手率"}
+        if not needed_cols.issubset(set(df.columns)):
+            return items
+        
+        df = df.copy()
+        df["涨跌幅"] = pd.to_numeric(df["涨跌幅"], errors="coerce")
+        df["换手率"] = pd.to_numeric(df["换手率"], errors="coerce")
+        
+        # 筛选：下跌(涨跌幅<0) + 换手率>5%
+        filtered = df[(df["涨跌幅"] < 0) & (df["换手率"] > 5)]
+        filtered = filtered.sort_values("换手率", ascending=False).head(top_n)
+        
+        for _, row in filtered.iterrows():
+            items.append({
+                "name": row.get("名称", ""),
+                "code": row.get("代码", ""),
+                "price": row.get("最新价", 0),
+                "change_pct": row.get("涨跌幅", 0),
+                "turnover": row.get("换手率", 0),
+            })
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"  ⚠️ 缩量下跌筛选项失败: {e}")
+    return items
+
+
+# ══════════════════════════════════════════
 # 历史数据 → 回归模型用
 # ══════════════════════════════════════════
 
@@ -379,7 +442,17 @@ def collect_all(cfg: Config) -> dict:
     data["major_news"] = [n for n in news if n.is_major]
     print(f"   ✅ 共{len(news)}条，重大{len(data['major_news'])}条")
 
-    # 7. 回归历史数据
+    # 7. 资金流入排行
+    print("\n💰 资金流入排行...")
+    data["moneyflow_top"] = fetch_moneyflow_top(n=15)
+    print(f"   ✅ {len(data['moneyflow_top'])} 只")
+
+    # 8. 缩量下跌高换手
+    print("\n📉 缩量下跌高换手...")
+    data["volume_alert"] = fetch_volume_alert(top_n=10)
+    print(f"   ✅ {len(data['volume_alert'])} 只")
+
+    # 9. 回归历史数据
     print("\n📈 回归历史数据...")
     data["regression_data"] = fetch_hist_regression_data(days=100)
     print(f"   ✅ {len(data['regression_data'])} 个交易日")

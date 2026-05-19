@@ -50,6 +50,12 @@ BRIEF_TEMPLATE = """今天是 {date}，{weekday}。
 ### 资金流向
 {capital_flow}
 
+### 资金流入排行
+{moneyflow_summary}
+
+### 缩量下跌高换手
+{volume_alert_summary}
+
 ### 限售股解禁
 {unlock_summary}
 
@@ -154,6 +160,37 @@ def build_prompt(data: dict) -> str:
     else:
         unlock_summary = "暂无近期限售股解禁"
 
+    # 资金流入排行
+    moneyflow = data.get("moneyflow_top", [])
+    if moneyflow:
+        moneyflow_lines = ["| 名称 | 净流入 | 涨跌幅 |", "|------|--------|--------|"]
+        for m in moneyflow[:10]:
+            name = m.get("name", "")
+            net = m.get("net_inflow", 0)
+            cp = m.get("change_pct", 0)
+            try:
+                net_f = float(net) / 100000000  # 转亿元
+                moneyflow_lines.append(f"| {name} | {net_f:.2f}亿 | {float(cp):+.2f}% |")
+            except (TypeError, ValueError):
+                moneyflow_lines.append(f"| {name} | {net} | {cp} |")
+        moneyflow_summary = "\n".join(moneyflow_lines)
+    else:
+        moneyflow_summary = "暂无数据"
+    
+    # 缩量下跌高换手
+    vol_alert = data.get("volume_alert", [])
+    if vol_alert:
+        vol_lines = ["| 名称 | 最新价 | 涨跌幅 | 换手率 |", "|------|--------|--------|--------|"]
+        for v in vol_alert:
+            name = v.get("name", "")
+            price = v.get("price", "")
+            cp = v.get("change_pct", 0)
+            to = v.get("turnover", 0)
+            vol_lines.append(f"| {name} | {price} | {float(cp):+.2f}% | {float(to):.2f}% |")
+        volume_alert_summary = "\n".join(vol_lines)
+    else:
+        volume_alert_summary = "暂无数据"
+
     # 模型
     model = data.get("anchor_model")
     model_summary = model.summary() if model else "暂无历史数据"
@@ -184,6 +221,8 @@ def build_prompt(data: dict) -> str:
         a50_summary=a50_summary,
         a_share_summary=a_share_summary,
         capital_flow=capital_flow,
+        moneyflow_summary=moneyflow_summary,
+        volume_alert_summary=volume_alert_summary,
         unlock_summary=unlock_summary,
         model_summary=model_summary,
         news_summary=news_summary,
