@@ -61,7 +61,9 @@ HTML_WRAPPER = """<!DOCTYPE html>
 def render_html(markdown_text: str, date: str) -> str:
     """Markdown → HTML"""
     html_body = markdown.markdown(markdown_text, extensions=["extra", "sane_lists"])
-    return HTML_WRAPPER.format(date=date, content=html_body)
+    # 用 replace 代替 format，避免 CSS 花括号冲突
+    html = HTML_WRAPPER.replace("{date}", date).replace("{content}", html_body)
+    return html
 
 
 def send_email(cfg: Config, html_content: str, date: str) -> bool:

@@ -144,40 +144,40 @@ def fetch_us_market() -> dict:
 # ══════════════════════════════════════════
 
 def fetch_a50_futures() -> Optional[dict]:
-    """从多个来源获取A50期货隔夜数据"""
-    # 方案1: yfinance (XIN9.FG 或 AG50)
+    """获取A50/中国大盘股隔夜表现（用FXI作为替代）"""
+    # 方案1: FXI (iShares China Large-Cap ETF, 纽交所上市)
     try:
-        t = yf.Ticker("XIN9.FG")
+        t = yf.Ticker("FXI")
         hist = t.history(period="5d")
         if len(hist) >= 2:
             latest = hist.iloc[-1]
             prev = hist.iloc[-2]
             change_pct = round((latest["Close"] - prev["Close"]) / prev["Close"] * 100, 2)
-            return {"price": round(latest["Close"], 2), "change_pct": change_pct}
+            return {"price": round(latest["Close"], 2), "change_pct": change_pct, "source": "FXI"}
     except:
         pass
 
+    # 方案2: ASHR (沪深300 ETF, 纽交所上市)
     try:
-        t = yf.Ticker("AG50.SI")
+        t = yf.Ticker("ASHR")
         hist = t.history(period="5d")
         if len(hist) >= 2:
             latest = hist.iloc[-1]
             prev = hist.iloc[-2]
             change_pct = round((latest["Close"] - prev["Close"]) / prev["Close"] * 100, 2)
-            return {"price": round(latest["Close"], 2), "change_pct": change_pct}
+            return {"price": round(latest["Close"], 2), "change_pct": change_pct, "source": "ASHR"}
     except:
         pass
 
-    # 方案2: East Money API
+    # 方案3: 用已获取的沪深300指数日线数据计算
     try:
-        url = "https://push2.eastmoney.com/api/qt/ulist.np/get"
-        params = {"fields": "f2,f3,f4,f12,f14", "secids": "1.000300"}
-        resp = requests.get(url, params=params, timeout=10)
-        data = resp.json()
-        diff = data.get("data", {}).get("diff", [])
-        if diff:
-            item = diff[0]
-            return {"price": item.get("f2"), "change_pct": item.get("f3")}
+        hs300 = yf.Ticker("000300.SS")
+        hist = hs300.history(period="5d")
+        if len(hist) >= 2:
+            latest = hist.iloc[-1]
+            prev = hist.iloc[-2]
+            change_pct = round((latest["Close"] - prev["Close"]) / prev["Close"] * 100, 2)
+            return {"price": round(latest["Close"], 2), "change_pct": change_pct, "source": "CSI300"}
     except:
         pass
 
