@@ -86,7 +86,7 @@ def main():
     report = generate_report(cfg, prompt)
     if not report:
         print("❌ 早报生成失败，使用备用模板")
-        report = "## 今日数据\n\n数据已采集，AI生成暂不可用。请查看网页版获取更多信息。"
+        report = "## 今日数据\n\n数据已采集，AI生成暂不可用。请查看网页版获取更多信息。\n\n🌐 https://youyujuzi.github.io/morning-brief-reasonix/"
 
     # 6. 早报校验
     print("\n🔍 早报校验...")

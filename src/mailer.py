@@ -51,7 +51,7 @@ HTML_WRAPPER = """<!DOCTYPE html>
   </div>
   <div class="card">{content}</div>
   <div class="footer">
-    <p>每日盘前自动发送 · 🌐 <a href="https://youyujuzi.github.io/morning-brief/">网页版</a></p>
+    <p>每日盘前自动发送 · 🌐 <a href="https://youyujuzi.github.io/morning-brief-reasonix/">网页版</a></p>
   </div>
 </div>
 </body>
@@ -85,7 +85,7 @@ def send_email(cfg: Config, html_content: str, date: str) -> bool:
 
         text_part = MIMEText(
             f"盘前作战地图 · {date}\n\n请查看HTML版本以获取完整格式。\n\n"
-            f"🌐 网页版: https://youyujuzi.github.io/morning-brief/",
+            f"🌐 网页版: https://youyujuzi.github.io/morning-brief-reasonix/",
             "plain", "utf-8"
         )
         html_part = MIMEText(html_content, "html", "utf-8")
